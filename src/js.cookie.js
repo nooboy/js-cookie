@@ -24,7 +24,13 @@
 		};
 	}
 }(function () {
+	/**
+	 * 把输入的多个对象合并为一个新对象副本
+	 *
+	 * @returns {object}
+	 */
 	function extend () {
+		console.log('---extend arguments: ', arguments);
 		var i = 0;
 		var result = {};
 		for (; i < arguments.length; i++) {
@@ -36,22 +42,49 @@
 		return result;
 	}
 
+	/**
+	 * 对字符串s中进行解码 
+	 * 相当于在回调函数函数中执行decodeURIComponent进行解码
+	 * 如："s%E4%B8%AD%20s%20d".replace(/(%[0-9A-Z]{2})+/g, function(a) {
+	 * 		return decodeURIComponent(a);
+	 * })
+	 * // "s中 s d"
+	 *
+	 * @param {string} s
+	 * @returns {string}
+	 */
 	function decode (s) {
 		return s.replace(/(%[0-9A-Z]{2})+/g, decodeURIComponent);
 	}
 
+	/**
+	 * 初始化
+	 *
+	 * @param {function} converter
+	 * @returns {object}
+	 */
 	function init (converter) {
 		function api() {}
 
+		/**
+		 * 设置cookie
+		 *
+		 * @param {string} key
+		 * @param {string|object} value
+		 * @param {object} attributes
+		 * @returns
+		 */
 		function set (key, value, attributes) {
 			if (typeof document === 'undefined') {
 				return;
 			}
 
+			// 扩展对象
 			attributes = extend({
 				path: '/'
 			}, api.defaults, attributes);
 
+			// 设置过期时间
 			if (typeof attributes.expires === 'number') {
 				attributes.expires = new Date(new Date() * 1 + attributes.expires * 864e+5);
 			}
@@ -59,6 +92,7 @@
 			// We're using "expires" because "max-age" is not supported by IE
 			attributes.expires = attributes.expires ? attributes.expires.toUTCString() : '';
 
+			// 对象序列号
 			try {
 				var result = JSON.stringify(value);
 				if (/^[\{\[]/.test(result)) {
@@ -66,11 +100,13 @@
 				}
 			} catch (e) {}
 
+			// 对value进行编码
 			value = converter.write ?
 				converter.write(value, key) :
 				encodeURIComponent(String(value))
 					.replace(/%(23|24|26|2B|3A|3C|3E|3D|2F|3F|40|5B|5D|5E|60|7B|7D|7C)/g, decodeURIComponent);
 
+			// 对key进行编码
 			key = encodeURIComponent(String(key))
 				.replace(/%(23|24|26|2B|5E|60|7C)/g, decodeURIComponent)
 				.replace(/[\(\)]/g, escape);
@@ -98,6 +134,12 @@
 			return (document.cookie = key + '=' + value + stringifiedAttributes);
 		}
 
+		/**
+		 * 获取cookie值
+		 * 
+		 * @param {string} key 
+		 * @param {boolean} json true就返回json，false就返回string
+		 */
 		function get (key, json) {
 			if (typeof document === 'undefined') {
 				return;
@@ -140,12 +182,34 @@
 		}
 
 		api.set = set;
+		
+		/**
+		 * 获取字符串格式的value
+		 * 
+		 * @param {string} key 
+		 * @return {string}	
+		 */
 		api.get = function (key) {
 			return get(key, false /* read as raw */);
 		};
+
+		/**
+		 *获取json格式的value
+		 *
+		 * @param {string} key
+		 * @returns {json}
+		 */
 		api.getJSON = function (key) {
 			return get(key, true /* read as json */);
 		};
+
+
+		/**
+		 * 删除
+		 *
+		 * @param {string} key
+		 * @param {object} attributes
+		 */
 		api.remove = function (key, attributes) {
 			set(key, '', extend(attributes, {
 				expires: -1
