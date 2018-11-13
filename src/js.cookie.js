@@ -65,7 +65,6 @@
 	 */
 	function init (converter) {
 		function api() {}
-
 		/**
 		 * 设置cookie
 		 *
